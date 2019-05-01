@@ -4,7 +4,7 @@ namespace REGoth
 {
   struct ShadowSample
   {
-    float m_brightnessFactor;
+    float m_brightness;
   };
 
   class ShadowSampler
