@@ -72,17 +72,15 @@ namespace REGoth
     auto vertexColorElement =
         meshData.getVertexDesc()->getElement(bs::VertexElementSemantic::VES_COLOR);
 
-    std::function<bs::Color(bs::UINT32)> unpackFunction = bs::Color::fromRGBA;
-    if (vertexColorElement->getType() == bs::VertexElementType::VET_COLOR_ARGB)
+    switch (vertexColorElement->getType())
     {
-      unpackFunction = bs::Color::fromARGB;
+      case bs::VertexElementType::VET_COLOR_ARGB:
+        return bs::Color::fromARGB;
+      case bs::VertexElementType::VET_COLOR_ABGR:
+        return bs::Color::fromABGR;
+      default:
+        return bs::Color::fromRGBA;
     }
-    else if (vertexColorElement->getType() == bs::VertexElementType::VET_COLOR_ABGR)
-    {
-      unpackFunction = bs::Color::fromABGR;
-    }
-
-    return unpackFunction;
   }
 
   void ShadowSampler::extractBrightnessPerVertex(const bs::HMesh& targetMesh)
