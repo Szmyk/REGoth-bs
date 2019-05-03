@@ -1,5 +1,7 @@
 #include <BsPrerequisites.h>
 
+#pragma once
+
 namespace REGoth
 {
   struct ShadowSample
@@ -10,20 +12,57 @@ namespace REGoth
   class ShadowSampler
   {
   public:
-    ShadowSampler(const bs::HMesh& targetMesh, const bs::HMeshCollider& targetCollider);
+    ShadowSampler() = default;
 
-    bool sampleFor(bs::HSceneObject so, ShadowSample& sample);
+    ShadowSampler(const bs::HMesh& mesh, const bs::HMeshCollider& collider);
+
+    bool sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const;
 
   private:
-    void doSanityChecks(const bs::HMesh& targetMesh, const bs::HMeshCollider& targetCollider);
+    struct Face
+    {
+      bs::UINT32 vertexIdx1;
+      bs::UINT32 vertexIdx2;
+      bs::UINT32 vertexIdx3;
+    };
 
-    std::function<bs::Color(bs::UINT32)> getVertexColorUnpackFunction(const bs::MeshData& meshData);
+    using FaceAccessorType = std::function<Face(const bs::MeshData&, bs::UINT32)>;
 
-    void extractBrightnessPerVertex(const bs::HMesh& targetMesh);
+    using VertexColorUnpackerType = std::function<bs::Color(bs::UINT32)>;
 
-    bool getSampleRay(bs::HSceneObject so, bs::Ray& ray);
+    /**
+     * Checks if the the given mesh and collider are valid and if the mesh has vertex colors.
+     */
+    static void doSanityChecks(const bs::HMesh& mesh, const bs::HMeshCollider& collider);
 
-    bs::HMeshCollider m_targetCollider;
-    bs::Vector<float> m_targetBrightnessPerVertex;
+    /**
+     * Utility returning a function that can unpack raw vertex color data being in the format of the
+     * vertex colors in the given bs::MeshData.
+     */
+    static VertexColorUnpackerType getVertexColorUnpackFunction(const bs::MeshData& meshData);
+
+    /**
+     * Utility returning a function that can access faces in a bs::MeshData object having the same
+     * index type as the given one.
+     */
+    static FaceAccessorType getFaceAccessor(const bs::MeshData& meshData);
+
+    /**
+     * Extracts the brightness per vertex from the given meshData as average over the three vertex
+     * color channels.
+     */
+    void extractBrightnessPerVertex(bs::MeshData& meshData);
+
+    /**
+     * Construct a (downward pointing) sample ray which is used for shadow sampling.
+     * The method assumes that the query object has a CRenderable component attached and returns
+     * false if any errors are encountered.
+     */
+    bool getSampleRay(bs::HSceneObject querySO, bs::Ray& ray) const;
+
+    bs::HMesh m_mesh;
+    bs::HMeshCollider m_collider;
+    bs::Vector<float> m_brightnessPerVertex;
+    FaceAccessorType m_faceAccessor;
   };
 }  // namespace REGoth

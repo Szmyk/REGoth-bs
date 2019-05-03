@@ -9,19 +9,21 @@
 
 namespace REGoth
 {
-  ShadowSampler::ShadowSampler(const bs::HMesh& targetMesh, const bs::HMeshCollider& targetCollider)
+  ShadowSampler::ShadowSampler(const bs::HMesh& mesh, const bs::HMeshCollider& collider)
+      : m_mesh(mesh)
+      , m_collider(collider)
   {
-    doSanityChecks(targetMesh, targetCollider);
+    doSanityChecks(m_mesh, m_collider);
 
-    m_targetCollider = targetCollider;
+    extractBrightnessPerVertex(*(m_mesh->getCachedData()));
 
-    extractBrightnessPerVertex(targetMesh);
+    m_faceAccessor = getFaceAccessor(*(m_mesh->getCachedData()));
   }
 
-  bool ShadowSampler::sampleFor(bs::HSceneObject so, ShadowSample& sample)
+  bool ShadowSampler::sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const
   {
     bs::Ray sampleRay;
-    if (!getSampleRay(so, sampleRay))
+    if (!getSampleRay(querySO, sampleRay))
     {
       // TODO: Error as we tried to sample for a scene object without visual representation?
       return false;
@@ -29,28 +31,34 @@ namespace REGoth
 
     // Trace a sample ray from the scene object to our associated collider
     bs::PhysicsQueryHit hit;
-    if (!m_targetCollider->rayCast(sampleRay, hit))
+    if (!m_collider->rayCast(sampleRay, hit))
     {
       return false;
     }
 
-    auto vertexIdx = hit.unmappedTriangleIdx * 3U;
+    // Obtain brightness for the hit point through barycentric coordinates
+    auto face = m_faceAccessor(*(m_mesh->getCachedData()), hit.unmappedTriangleIdx);
+    float a   = (hit.uv.x) * m_brightnessPerVertex[face.vertexIdx1];
+    float b   = (hit.uv.y) * m_brightnessPerVertex[face.vertexIdx2];
+    float c   = (1.f - hit.uv.x - hit.uv.y) * m_brightnessPerVertex[face.vertexIdx3];
+
+    sample.m_brightness = a + b + c;
+
+    return true;
   }
 
-  void ShadowSampler::doSanityChecks(const bs::HMesh& targetMesh,
-                                     const bs::HMeshCollider& targetCollider)
+  void ShadowSampler::doSanityChecks(const bs::HMesh& mesh, const bs::HMeshCollider& collider)
   {
     // Perform some sanity checks (for valid mesh data and existance of vertex colors)
 
-    if (targetMesh == nullptr || targetCollider == nullptr)
+    if (mesh == nullptr || collider == nullptr)
     {
       // TODO: Error
     }
 
-    auto originalMeshData = targetMesh->getCachedData();
-    auto physicsMeshData  = targetCollider->getMesh()->getMeshData();
+    auto originalMeshData = mesh->getCachedData();
 
-    if (originalMeshData == nullptr || physicsMeshData == nullptr)
+    if (originalMeshData == nullptr)
     {
       // TODO: Error
     }
@@ -64,11 +72,9 @@ namespace REGoth
     }
   }
 
-  std::function<bs::Color(bs::UINT32)> ShadowSampler::getVertexColorUnpackFunction(
+  ShadowSampler::VertexColorUnpackerType ShadowSampler::getVertexColorUnpackFunction(
       const bs::MeshData& meshData)
   {
-    // The function to unpack vertex colors is determined by the type of the vertex color element
-
     auto vertexColorElement =
         meshData.getVertexDesc()->getElement(bs::VertexElementSemantic::VES_COLOR);
 
@@ -83,30 +89,61 @@ namespace REGoth
     }
   }
 
-  void ShadowSampler::extractBrightnessPerVertex(const bs::HMesh& targetMesh)
+  ShadowSampler::FaceAccessorType ShadowSampler::getFaceAccessor(const bs::MeshData& meshData)
   {
-    auto meshData = targetMesh->getCachedData();
+    ShadowSampler::FaceAccessorType accessor;
 
-    bs::Vector<bs::UINT32> vertexColors(meshData->getNumVertices());
-    targetMesh->getCachedData()->getVertexData(bs::VertexElementSemantic::VES_COLOR,
-                                               vertexColors.data(),
-                                               vertexColors.size() * sizeof(bs::UINT32));
+    switch (meshData.getIndexType())
+    {
+      case bs::IndexType::IT_16BIT:
+        accessor = [](const bs::MeshData& meshData, bs::UINT32 faceIndex) {
+          auto indices = meshData.getIndices16();
+          return ShadowSampler::Face{
+              static_cast<bs::UINT32>(indices[faceIndex]),
+              static_cast<bs::UINT32>(indices[faceIndex + 1]),
+              static_cast<bs::UINT32>(indices[faceIndex + 2]),
+          };
+        };
+        break;
+      case bs::IndexType::IT_32BIT:
+        accessor = [](const bs::MeshData& meshData, bs::UINT32 faceIndex) {
+          auto indices = meshData.getIndices32();
+          return ShadowSampler::Face{
+              indices[faceIndex],
+              indices[faceIndex + 1],
+              indices[faceIndex + 2],
+          };
+        };
+        break;
+      default:
+        // TODO: Error
+        break;
+    }
 
-    m_targetBrightnessPerVertex.reserve(vertexColors.size());
+    return accessor;
+  }
+
+  void ShadowSampler::extractBrightnessPerVertex(bs::MeshData& meshData)
+  {
+    bs::Vector<bs::UINT32> vertexColors(meshData.getNumVertices());
+    meshData.getVertexData(bs::VertexElementSemantic::VES_COLOR, vertexColors.data(),
+                           static_cast<unsigned int>(vertexColors.size() * sizeof(bs::UINT32)));
+
+    m_brightnessPerVertex.reserve(vertexColors.size());
 
     // Extract brightness per vertex as average over the color channels
-    auto unpackColor = getVertexColorUnpackFunction(*meshData);
+    auto unpackColor = getVertexColorUnpackFunction(meshData);
     for (bs::UINT32 packedColor : vertexColors)
     {
       bs::Color color = unpackColor(packedColor);
-      m_targetBrightnessPerVertex.push_back((color.r + color.g + color.b) / 3.f);
+      m_brightnessPerVertex.push_back((color.r + color.g + color.b) / 3.f);
     }
   }
 
-  bool ShadowSampler::getSampleRay(bs::HSceneObject so, bs::Ray& ray)
+  bool ShadowSampler::getSampleRay(bs::HSceneObject querySO, bs::Ray& ray) const
   {
     // Without a renderable component we cannot construct the sample ray
-    auto renderable = so->getComponent<bs::CRenderable>();
+    auto renderable = querySO->getComponent<bs::CRenderable>();
     if (!renderable)
     {
       return false;
