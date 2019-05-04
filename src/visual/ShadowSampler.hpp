@@ -6,13 +6,13 @@ namespace REGoth
 {
   struct ShadowSample
   {
-    float m_brightness;
+    float brightness;
   };
 
   class ShadowSampler
   {
   public:
-    ShadowSampler() = default;
+    ShadowSampler() = default; // TODO: Remove
 
     ShadowSampler(const bs::HMesh& mesh, const bs::HMeshCollider& collider);
 
@@ -60,9 +60,9 @@ namespace REGoth
      */
     bool getSampleRay(bs::HSceneObject querySO, bs::Ray& ray) const;
 
-    bs::HMesh m_mesh;
-    bs::HMeshCollider m_collider;
-    bs::Vector<float> m_brightnessPerVertex;
-    FaceAccessorType m_faceAccessor;
+    bs::HMesh mMesh;
+    bs::HMeshCollider mCollider;
+    bs::Vector<float> mBrightnessPerVertex;
+    FaceAccessorType mFaceAccessor;
   };
 }  // namespace REGoth

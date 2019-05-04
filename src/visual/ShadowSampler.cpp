@@ -10,14 +10,14 @@
 namespace REGoth
 {
   ShadowSampler::ShadowSampler(const bs::HMesh& mesh, const bs::HMeshCollider& collider)
-      : m_mesh(mesh)
-      , m_collider(collider)
+      : mMesh(mesh)
+      , mCollider(collider)
   {
-    doSanityChecks(m_mesh, m_collider);
+    doSanityChecks(mMesh, mCollider);
 
-    extractBrightnessPerVertex(*(m_mesh->getCachedData()));
+    extractBrightnessPerVertex(*(mMesh->getCachedData()));
 
-    m_faceAccessor = getFaceAccessor(*(m_mesh->getCachedData()));
+    mFaceAccessor = getFaceAccessor(*(mMesh->getCachedData()));
   }
 
   bool ShadowSampler::sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const
@@ -31,18 +31,18 @@ namespace REGoth
 
     // Trace a sample ray from the scene object to our associated collider
     bs::PhysicsQueryHit hit;
-    if (!m_collider->rayCast(sampleRay, hit))
+    if (!mCollider->rayCast(sampleRay, hit))
     {
       return false;
     }
 
     // Obtain brightness for the hit point through barycentric coordinates
-    auto face = m_faceAccessor(*(m_mesh->getCachedData()), hit.unmappedTriangleIdx);
-    float a   = (hit.uv.x) * m_brightnessPerVertex[face.vertexIdx1];
-    float b   = (hit.uv.y) * m_brightnessPerVertex[face.vertexIdx2];
-    float c   = (1.f - hit.uv.x - hit.uv.y) * m_brightnessPerVertex[face.vertexIdx3];
+    auto face = mFaceAccessor(*(mMesh->getCachedData()), hit.unmappedTriangleIdx);
+    float a   = (hit.uv.x) * mBrightnessPerVertex[face.vertexIdx1];
+    float b   = (hit.uv.y) * mBrightnessPerVertex[face.vertexIdx2];
+    float c   = (1.f - hit.uv.x - hit.uv.y) * mBrightnessPerVertex[face.vertexIdx3];
 
-    sample.m_brightness = a + b + c;
+    sample.brightness = a + b + c;
 
     return true;
   }
@@ -129,14 +129,14 @@ namespace REGoth
     meshData.getVertexData(bs::VertexElementSemantic::VES_COLOR, vertexColors.data(),
                            static_cast<unsigned int>(vertexColors.size() * sizeof(bs::UINT32)));
 
-    m_brightnessPerVertex.reserve(vertexColors.size());
+    mBrightnessPerVertex.reserve(vertexColors.size());
 
     // Extract brightness per vertex as average over the color channels
     auto unpackColor = getVertexColorUnpackFunction(meshData);
     for (bs::UINT32 packedColor : vertexColors)
     {
       bs::Color color = unpackColor(packedColor);
-      m_brightnessPerVertex.push_back((color.r + color.g + color.b) / 3.f);
+      mBrightnessPerVertex.push_back((color.r + color.g + color.b) / 3.f);
     }
   }
 
