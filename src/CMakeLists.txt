@@ -102,14 +102,18 @@ add_library(REGothEngine
   gui/skin_gothic.cpp
   world/internals/ImportSingleVob.hpp
   world/internals/ImportSingleVob.cpp
+  visual/RaycastShadowSampler.hpp
+  visual/RaycastShadowSampler.cpp
   visual/ShadowSampler.hpp
   visual/ShadowSampler.cpp
   RTTI/RTTI_CharacterAI.hpp
   RTTI/RTTI_Character.hpp
   RTTI/RTTI_CharacterKeyboardInput.hpp
+  RTTI/RTTI_RaycastShadowSampler.hpp
   RTTI/RTTI_ScriptBackedBy.hpp
   RTTI/RTTI_ScriptObject.hpp
   RTTI/RTTI_ScriptObjectStorage.hpp
+  RTTI/RTTI_ShadowSampler.hpp
   RTTI/RTTI_TypeIDs.hpp
   RTTI/RTTIUtil.hpp
   RTTI/RTTI_VisualCharacter.hpp

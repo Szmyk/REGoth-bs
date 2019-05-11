@@ -1,68 +1,45 @@
-#include <BsPrerequisites.h>
-
 #pragma once
+
+#include <RTTI/RTTIUtil.hpp>
+
+#include <BsPrerequisites.h>
+#include <Scene/BsComponent.h>
 
 namespace REGoth
 {
+  /**
+   * Result of a shadow sampling query.
+   */
   struct ShadowSample
   {
     float brightness;
   };
 
-  class ShadowSampler
+  /**
+   * Abstract representation of a technique that can be used to obtain shadow information for a query
+   * object (possibly influencing the object's visual appearance).
+   *
+   * The actual sampling is implementation specific and could e. g. use information from the spatial
+   * neighborhood of the query object.
+   */
+  class ShadowSampler : public bs::Component
   {
   public:
-    ShadowSampler() = default; // TODO: Remove
-
-    ShadowSampler(const bs::HMesh& mesh, const bs::HMeshCollider& collider);
-
-    bool sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const;
-
-  private:
-    struct Face
-    {
-      bs::UINT32 vertexIdx1;
-      bs::UINT32 vertexIdx2;
-      bs::UINT32 vertexIdx3;
-    };
-
-    using FaceAccessorType = std::function<Face(const bs::MeshData&, bs::UINT32)>;
-
-    using VertexColorUnpackerType = std::function<bs::Color(bs::UINT32)>;
+    virtual ~ShadowSampler() = default;
 
     /**
-     * Checks if the the given mesh and collider are valid and if the mesh has vertex colors.
+     * Perform shadow sampling for a given scene object.
+     *
+     * @param  querySO  The object to obtain the sample for.
+     * @param  sample   Reference to which the query result is written.
+     *                  Only filled with valid data if the return value is true.
+     *
+     * @return True if sampling for the given object was successful, false otherwise.
      */
-    static void doSanityChecks(const bs::HMesh& mesh, const bs::HMeshCollider& collider);
+    virtual bool sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const = 0;
 
-    /**
-     * Utility returning a function that can unpack raw vertex color data being in the format of the
-     * vertex colors in the given bs::MeshData.
-     */
-    static VertexColorUnpackerType getVertexColorUnpackFunction(const bs::MeshData& meshData);
-
-    /**
-     * Utility returning a function that can access faces in a bs::MeshData object having the same
-     * index type as the given one.
-     */
-    static FaceAccessorType getFaceAccessor(const bs::MeshData& meshData);
-
-    /**
-     * Extracts the brightness per vertex from the given meshData as average over the three vertex
-     * color channels.
-     */
-    void extractBrightnessPerVertex(bs::MeshData& meshData);
-
-    /**
-     * Construct a (downward pointing) sample ray which is used for shadow sampling.
-     * The method assumes that the query object has a CRenderable component attached and returns
-     * false if any errors are encountered.
-     */
-    bool getSampleRay(bs::HSceneObject querySO, bs::Ray& ray) const;
-
-    bs::HMesh mMesh;
-    bs::HMeshCollider mCollider;
-    bs::Vector<float> mBrightnessPerVertex;
-    FaceAccessorType mFaceAccessor;
+    REGOTH_DECLARE_RTTI(ShadowSampler)
   };
+
+  using HShadowSampler = bs::GameObjectHandle<ShadowSampler>;
 }  // namespace REGoth
