@@ -5,8 +5,15 @@
 #include "ShadowSampler.hpp"
 #include <RTTI/RTTIUtil.hpp>
 
+#include <Physics/BsPhysicsCommon.h>
+
 namespace REGoth
 {
+  struct RaycastShadowSample : ShadowSample
+  {
+    bs::PhysicsQueryHit hit;
+  };
+
   /**
    * Shadow sampler that, starting from the query scene object's position, performs a down-pointing
    * raycast against a given geometry and uses vertex color data of the geometry to derive shadow
@@ -39,6 +46,8 @@ namespace REGoth
      *         otherwise.
      */
     bool sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const override;
+
+    bool sampleFor(bs::HSceneObject querySO, RaycastShadowSample& sample) const;
 
   private:
     struct Face
@@ -93,9 +102,6 @@ namespace REGoth
     static bs::SPtr<RaycastShadowSampler> createEmpty();
 
   private:
-    /**
-     * Only for RTTI.
-     */
-    RaycastShadowSampler() = default;
+    RaycastShadowSampler() = default;  // For RTTI
   };
 }  // namespace REGoth

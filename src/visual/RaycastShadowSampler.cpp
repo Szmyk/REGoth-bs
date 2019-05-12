@@ -25,6 +25,16 @@ namespace REGoth
 
   bool RaycastShadowSampler::sampleFor(bs::HSceneObject querySO, ShadowSample& sample) const
   {
+    RaycastShadowSample raycastSample;
+    bool result = sampleFor(querySO, raycastSample);
+
+    sample = static_cast<ShadowSample&>(raycastSample);
+
+    return result;
+  }
+
+  bool RaycastShadowSampler::sampleFor(bs::HSceneObject querySO, RaycastShadowSample& sample) const
+  {
     bs::Ray sampleRay;
     if (!getSampleRay(querySO, sampleRay))
     {
@@ -39,13 +49,19 @@ namespace REGoth
       return false;
     }
 
-    // Obtain brightness for the hit point through barycentric coordinates
-    auto face = mFaceAccessor(*(mMesh->getCachedData()), hit.unmappedTriangleIdx);
-    float a   = (hit.uv.x) * mBrightnessPerVertex[face.vertexIdx1];
-    float b   = (hit.uv.y) * mBrightnessPerVertex[face.vertexIdx2];
-    float c   = (1.f - hit.uv.x - hit.uv.y) * mBrightnessPerVertex[face.vertexIdx3];
+    float u = hit.uv.x;
+    float v = hit.uv.y;
+    float w = 1.f - u - v;
 
-    sample.brightness = a + b + c;
+    // Obtain brightness for the hit point through barycentric coordinates (the order is w, v, u as
+    // opposed to u, v, w ... don't ask me why)
+    auto face = mFaceAccessor(*(mMesh->getCachedData()), hit.unmappedTriangleIdx);
+
+    sample.brightness = w * mBrightnessPerVertex[face.vertexIdx1] +
+                        v * mBrightnessPerVertex[face.vertexIdx2] +
+                        u * mBrightnessPerVertex[face.vertexIdx3];
+
+    sample.hit = hit;
 
     return true;
   }
@@ -103,9 +119,9 @@ namespace REGoth
         accessor = [](const bs::MeshData& meshData, bs::UINT32 faceIndex) {
           auto indices = meshData.getIndices16();
           return RaycastShadowSampler::Face{
-              static_cast<bs::UINT32>(indices[faceIndex]),
-              static_cast<bs::UINT32>(indices[faceIndex + 1]),
-              static_cast<bs::UINT32>(indices[faceIndex + 2]),
+              static_cast<bs::UINT32>(indices[faceIndex * 3]),
+              static_cast<bs::UINT32>(indices[faceIndex * 3 + 1]),
+              static_cast<bs::UINT32>(indices[faceIndex * 3 + 2]),
           };
         };
         break;
@@ -113,9 +129,9 @@ namespace REGoth
         accessor = [](const bs::MeshData& meshData, bs::UINT32 faceIndex) {
           auto indices = meshData.getIndices32();
           return RaycastShadowSampler::Face{
-              indices[faceIndex],
-              indices[faceIndex + 1],
-              indices[faceIndex + 2],
+              indices[faceIndex * 3],
+              indices[faceIndex * 3 + 1],
+              indices[faceIndex * 3 + 2],
           };
         };
         break;
