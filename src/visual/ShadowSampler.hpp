@@ -3,7 +3,7 @@
 #include <RTTI/RTTIUtil.hpp>
 
 #include <BsPrerequisites.h>
-#include <Scene/BsComponent.h>
+#include <Reflection/BsIReflectable.h>
 
 namespace REGoth
 {
@@ -22,7 +22,7 @@ namespace REGoth
    * The actual sampling is implementation specific and could e. g. use information from the spatial
    * neighborhood of the query object.
    */
-  class ShadowSampler : public bs::Component
+  class ShadowSampler : public bs::IReflectable
   {
   public:
     virtual ~ShadowSampler() = default;
@@ -40,6 +40,4 @@ namespace REGoth
 
     REGOTH_DECLARE_RTTI(ShadowSampler)
   };
-
-  using HShadowSampler = bs::GameObjectHandle<ShadowSampler>;
 }  // namespace REGoth

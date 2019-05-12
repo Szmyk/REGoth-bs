@@ -6,7 +6,7 @@
 namespace REGoth
 {
   class RTTI_ShadowSampler
-      : public bs::RTTIType<ShadowSampler, bs::Component, RTTI_ShadowSampler>
+      : public bs::RTTIType<ShadowSampler, bs::IReflectable, RTTI_ShadowSampler>
   {
     BS_BEGIN_RTTI_MEMBERS
     // No members

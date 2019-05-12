@@ -33,6 +33,6 @@ namespace REGoth
           RaycastShadowSampler::getFaceAccessor(*(sampler->mMesh->getCachedData()));
     }
 
-    REGOTH_IMPLEMENT_RTTI_CLASS_FOR_COMPONENT(RaycastShadowSampler)
+    REGOTH_IMPLEMENT_RTTI_CLASS_FOR_REFLECTABLE(RaycastShadowSampler)
   };
 }  // namespace REGoth
