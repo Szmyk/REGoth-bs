@@ -162,4 +162,9 @@ namespace REGoth
   }
 
   REGOTH_DEFINE_RTTI(RaycastShadowSampler)
+
+  bs::SPtr<RaycastShadowSampler> RaycastShadowSampler::createEmpty()
+  {
+    return bs::bs_shared_ptr(new (bs::bs_alloc<RaycastShadowSampler>()) RaycastShadowSampler());
+  }
 }  // namespace REGoth

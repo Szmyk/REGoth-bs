@@ -90,10 +90,12 @@ namespace REGoth
   public:
     REGOTH_DECLARE_RTTI(RaycastShadowSampler)
 
+    static bs::SPtr<RaycastShadowSampler> createEmpty();
+
   private:
     /**
      * Only for RTTI.
      */
-    RaycastShadowSampler();
+    RaycastShadowSampler() = default;
   };
 }  // namespace REGoth
