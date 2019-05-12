@@ -53,6 +53,8 @@ add_library(REGothEngine
   components/CharacterKeyboardInput.cpp
   components/GameClock.hpp
   components/GameClock.cpp
+  components/ShadowSampling.hpp
+  components/ShadowSampling.cpp
   exception/Throw.hpp
   animation/StateNaming.hpp
   animation/StateNaming.cpp

@@ -16,6 +16,11 @@ shader Surface
 
     Texture2D gAlbedoTex = white;
 
+    cbuffer ShadowParams
+    {
+        float gShadowValue = 1.0f;
+    }
+
     struct ZenVertexInput
     {
       #if POSITION_2D
@@ -145,8 +150,8 @@ shader Surface
 
       encodeGBuffer(surfaceData, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD);
 
-      OutSceneColor = surfaceData.albedo.rgb * input.color.rgb;
-    }
+      OutSceneColor = surfaceData.albedo.rgb * input.color.rgb * float3(gShadowValue, gShadowValue, gShadowValue);
+}
   };
 };
 
